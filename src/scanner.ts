@@ -126,9 +126,47 @@ const FRAMEWORK_DETECTOR: Record<string, (files: string[], contentMap: Map<strin
     return [];
   },
   Svelte: (files) => (files.includes("svelte.config.js") ? ["Svelte"] : []),
+  SvelteKit: (files) =>
+    files.includes("svelte.config.js") && files.includes("src/routes")
+      ? ["SvelteKit"]
+      : [],
   Remix: (_f, contentMap) => {
     const pkg = contentMap.get("package.json");
     if (pkg && pkg.includes("remix")) return ["Remix"];
+    return [];
+  },
+  Astro: (files) => (files.includes("astro.config.mjs") || files.includes("astro.config.ts") ? ["Astro"] : []),
+  Gatsby: (_f, contentMap) => {
+    const pkg = contentMap.get("package.json");
+    if (pkg && pkg.includes("gatsby")) return ["Gatsby"];
+    return [];
+  },
+  Vite: (files, contentMap) => {
+    const pkg = contentMap.get("package.json");
+    if (pkg && pkg.includes("vite")) return ["Vite"];
+    if (files.includes("vite.config.ts") || files.includes("vite.config.js") || files.includes("vite.config.mjs")) return ["Vite"];
+    return [];
+  },
+  Electron: (_f, contentMap) => {
+    const pkg = contentMap.get("package.json");
+    if (pkg && pkg.includes("electron")) return ["Electron"];
+    return [];
+  },
+  SolidJS: (_f, contentMap) => {
+    const pkg = contentMap.get("package.json");
+    if (pkg && pkg.includes("solid-js")) return ["SolidJS"];
+    return [];
+  },
+  Preact: (_f, contentMap) => {
+    const pkg = contentMap.get("package.json");
+    if (pkg && pkg.includes("preact")) return ["Preact"];
+    return [];
+  },
+  Laravel: (files) => (files.includes("artisan") ? ["Laravel"] : []),
+  Rails: (files) => (files.includes("Gemfile") && files.includes("config/routes.rb") ? ["Ruby on Rails"] : []),
+  Nuxt: (_f, contentMap) => {
+    const pkg = contentMap.get("package.json");
+    if (pkg && pkg.includes("nuxt")) return ["Nuxt"];
     return [];
   },
   Tailwind: (_f, contentMap) => {
