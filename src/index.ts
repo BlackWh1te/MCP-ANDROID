@@ -9,7 +9,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 import { scanProject, getProjectSummary, explainArchitecture } from "./scanner.js";
-import { remember, recall, listMemories } from "./memory.js";
+import { remember, recall, listMemories, deduplicateMemories, summarizeMemory, findRelatedMemories, exportMemories, importMemories } from "./memory.js";
 import { runCommand } from "./terminal.js";
 import {
   gitStatus, gitLog, gitDiff,
@@ -20,6 +20,11 @@ import {
   gitMerge, gitRebase,
   gitTags, gitCreateTag,
   gitBlame, gitShow,
+  analyzeBranchHealth,
+  analyzeWorkflow,
+  scoreCommitQuality,
+  detectConflicts,
+  getGitConfig,
 } from "./git-tools.js";
 import { searchCode, getFileContext } from "./search.js";
 import { readFile, writeFile, editFile, deleteFile, moveFile, copyFile, createDirectory, removeDirectory, listDirectory } from "./files.js";
@@ -167,6 +172,69 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: "deduplicate_memories",
+        description: "Find and report duplicate or similar memories using similarity analysis.",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
+        name: "summarize_memory",
+        description: "Generate or retrieve a summary for a specific memory.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            key: {
+              type: "string",
+              description: "Memory key to summarize",
+            },
+          },
+          required: ["key"],
+        },
+      },
+      {
+        name: "find_related_memories",
+        description: "Find memories related to a specific memory based on content and tags.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            key: {
+              type: "string",
+              description: "Memory key to find relations for",
+            },
+            threshold: {
+              type: "number",
+              description: "Similarity threshold (default: 0.3)",
+              default: 0.3,
+            },
+          },
+          required: ["key"],
+        },
+      },
+      {
+        name: "export_memories",
+        description: "Export all memories to a backup JSON file.",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
+        name: "import_memories",
+        description: "Import memories from a backup JSON file.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            backupPath: {
+              type: "string",
+              description: "Path to backup JSON file",
+            },
+          },
+          required: ["backupPath"],
+        },
+      },
+      {
         name: "run_command",
         description:
           "Execute a terminal command safely. Auto-detects Windows (CMD/PowerShell) vs Unix (bash/sh). Returns stdout, stderr, and exit code. Use with care.",
@@ -245,7 +313,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "search_code",
         description:
-          "Search code across the project using regex or literal string. Respects .gitignore.",
+          "Search code across the project using regex or literal string. Respects .gitignore. Returns context and relevance scores.",
         inputSchema: {
           type: "object",
           properties: {
@@ -270,6 +338,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             ext: {
               type: "string",
               description: "Filter by file extension, e.g., '.ts' or '.py'",
+            },
+            caseSensitive: {
+              type: "boolean",
+              description: "Case-sensitive search (default: false)",
+              default: false,
+            },
+            contextLines: {
+              type: "number",
+              description: "Context lines before/after match (default: 2)",
+              default: 2,
             },
           },
           required: ["query"],
@@ -848,6 +926,76 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: "analyze_branch_health",
+        description: "Analyze branch health: stale branches, uncommitted changes, ahead/behind status.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            repoPath: {
+              type: "string",
+              description: "Path to git repository (default: current)",
+            },
+          },
+        },
+      },
+      {
+        name: "analyze_workflow",
+        description: "Detect git workflow type (GitFlow, Trunk-Based, Feature Branch) and provide recommendations.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            repoPath: {
+              type: "string",
+              description: "Path to git repository (default: current)",
+            },
+          },
+        },
+      },
+      {
+        name: "score_commit_quality",
+        description: "Score commit message quality based on conventional commits, length, and style.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            limit: {
+              type: "number",
+              description: "Number of recent commits to analyze (default: 10)",
+              default: 10,
+            },
+            repoPath: {
+              type: "string",
+              description: "Path to git repository (default: current)",
+            },
+          },
+        },
+      },
+      {
+        name: "detect_conflicts",
+        description: "Detect merge conflicts and provide resolution suggestions.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            repoPath: {
+              type: "string",
+              description: "Path to git repository (default: current)",
+            },
+          },
+        },
+      },
+      {
+        name: "get_git_config",
+        description: "Get local and global git configuration.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            repoPath: {
+              type: "string",
+              description: "Path to git repository (default: current)",
+            },
+          },
+        },
+      },
+      {
         name: "get_package_scripts",
         description: "Detect and list available package scripts from package.json, pyproject.toml, Makefile, or Cargo.toml.",
         inputSchema: {
@@ -1305,6 +1453,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     case "list_memories":
       result = listMemories(args.tag as string | undefined);
       break;
+    case "deduplicate_memories":
+      result = await deduplicateMemories();
+      break;
+    case "summarize_memory":
+      result = await summarizeMemory(String(args.key));
+      break;
+    case "find_related_memories":
+      result = await findRelatedMemories(String(args.key), Number(args.threshold ?? 0.3));
+      break;
+    case "export_memories":
+      result = await exportMemories();
+      break;
+    case "import_memories":
+      result = await importMemories(String(args.backupPath));
+      break;
     case "run_command":
       result = await runCommand(
         String(args.command),
@@ -1334,7 +1497,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         args.path as string | undefined,
         Boolean(args.literal ?? false),
         Number(args.maxResults ?? 50),
-        args.ext as string | undefined
+        args.ext as string | undefined,
+        Boolean(args.caseSensitive ?? false),
+        Number(args.contextLines ?? 2)
       );
       break;
     case "get_file_context":
@@ -1442,6 +1607,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       break;
     case "git_show":
       result = await gitShow(String(args.commit), args.repoPath as string | undefined);
+      break;
+    case "analyze_branch_health":
+      result = await analyzeBranchHealth(args.repoPath as string | undefined);
+      break;
+    case "analyze_workflow":
+      result = await analyzeWorkflow(args.repoPath as string | undefined);
+      break;
+    case "score_commit_quality":
+      result = await scoreCommitQuality(args.repoPath as string | undefined, Number(args.limit ?? 10));
+      break;
+    case "detect_conflicts":
+      result = await detectConflicts(args.repoPath as string | undefined);
+      break;
+    case "get_git_config":
+      result = await getGitConfig(args.repoPath as string | undefined);
       break;
     case "get_package_scripts":
       result = await getPackageScripts(args.path as string | undefined);

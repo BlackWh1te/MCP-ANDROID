@@ -16,7 +16,7 @@ describe("git-tools", () => {
   it("returns branches", async () => {
     const result = await gitBranches(".");
     const parsed = JSON.parse(result);
-    expect(parsed.current).toBe("master");
+    expect(parsed.current).toBe("main");
     expect(parsed.branches.length).toBeGreaterThan(0);
   });
 

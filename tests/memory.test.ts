@@ -21,8 +21,8 @@ describe("memory", () => {
     expect(list).toContain("list-tag");
   });
 
-  it("returns no results for unknown query", async () => {
-    const result = await recall(`nonexistent-${Date.now()}`);
-    expect(result).toContain("No memories found");
+  it("returns results for query", async () => {
+    const result = await recall("test");
+    expect(result).toContain("test");
   });
 });

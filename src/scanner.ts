@@ -1,5 +1,6 @@
 // BlackWhite — MCP DevKit
 import { promises as fs, constants } from "fs";
+import fsSync from "fs";
 import path from "path";
 
 interface FileInfo {
@@ -25,6 +26,42 @@ interface ScanResult {
   techStack: TechStack;
   topLevelFiles: string[];
   structure: FileInfo[];
+  codeQuality: CodeQualityMetrics;
+  securityIssues: SecurityIssue[];
+  patterns: PatternDetection;
+  dependencies: DependencyAnalysis;
+}
+
+interface CodeQualityMetrics {
+  avgFunctionLength: number;
+  maxNestingDepth: number;
+  complexityScore: number;
+  duplicateCodeRatio: number;
+  todoCount: number;
+  fixmeCount: number;
+  hackCount: number;
+}
+
+interface SecurityIssue {
+  severity: "critical" | "high" | "medium" | "low";
+  type: string;
+  file: string;
+  line?: number;
+  description: string;
+}
+
+interface PatternDetection {
+  designPatterns: string[];
+  antiPatterns: string[];
+  architecturePatterns: string[];
+  codeSmells: string[];
+}
+
+interface DependencyAnalysis {
+  totalDependencies: number;
+  outdatedDependencies: string[];
+  vulnerableDependencies: string[];
+  dependencyTree: Record<string, string[]>;
 }
 
 const DETECTORS: Record<string, (files: string[]) => string[]> = {
@@ -372,6 +409,261 @@ async function readFileSafe(p: string, maxBytes = 50000): Promise<string> {
   }
 }
 
+// Advanced code quality analysis
+async function analyzeCodeQuality(files: string[], root: string): Promise<CodeQualityMetrics> {
+  let totalFunctionLength = 0;
+  let functionCount = 0;
+  let maxNesting = 0;
+  let complexitySum = 0;
+  let fileCount = 0;
+  let todoCount = 0;
+  let fixmeCount = 0;
+  let hackCount = 0;
+
+  for (const file of files) {
+    if (!file.match(/\.(js|ts|jsx|tsx|py|rs|go|java|cs|cpp|c|h|php|rb)$/)) continue;
+    const content = await readFileSafe(file, 100000);
+    if (!content) continue;
+
+    fileCount++;
+
+    // Count TODO, FIXME, HACK comments
+    todoCount += (content.match(/TODO|todo/g) || []).length;
+    fixmeCount += (content.match(/FIXME|fixme/g) || []).length;
+    hackCount += (content.match(/HACK|hack/g) || []).length;
+
+    // Analyze function length and nesting
+    const lines = content.split("\n");
+    let currentNesting = 0;
+    let inFunction = false;
+    let functionStart = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const openBraces = (line.match(/{/g) || []).length;
+      const closeBraces = (line.match(/}/g) || []).length;
+      currentNesting += openBraces - closeBraces;
+      maxNesting = Math.max(maxNesting, currentNesting);
+
+      // Detect function start (simplified)
+      if (line.match(/function|def|fn|func|=>/)) {
+        inFunction = true;
+        functionStart = i;
+      }
+
+      if (inFunction && closeBraces > 0 && currentNesting === 0) {
+        const funcLength = i - functionStart;
+        totalFunctionLength += funcLength;
+        functionCount++;
+        inFunction = false;
+      }
+    }
+
+    // Simple complexity estimation
+    const complexity = content.split(/\bif\b|\bfor\b|\bwhile\b|\bcase\b|\bcatch\b/).length - 1;
+    complexitySum += complexity;
+  }
+
+  return {
+    avgFunctionLength: functionCount > 0 ? Math.round(totalFunctionLength / functionCount) : 0,
+    maxNestingDepth: maxNesting,
+    complexityScore: fileCount > 0 ? Math.round(complexitySum / fileCount) : 0,
+    duplicateCodeRatio: 0, // Would need more sophisticated analysis
+    todoCount,
+    fixmeCount,
+    hackCount,
+  };
+}
+
+// Security vulnerability detection
+async function detectSecurityIssues(files: string[], root: string, contentMap: Map<string, string>): Promise<SecurityIssue[]> {
+  const issues: SecurityIssue[] = [];
+
+  // Check package.json for vulnerable dependencies
+  const pkg = contentMap.get("package.json");
+  if (pkg) {
+    try {
+      const pkgData = JSON.parse(pkg);
+      const deps = { ...pkgData.dependencies, ...pkgData.devDependencies };
+
+      // Known vulnerable packages (simplified check)
+      const knownVulns: Record<string, string> = {
+        "lodash": "<4.17.21",
+        "axios": "<0.21.1",
+        "moment": "<2.29.4",
+        "express": "<4.17.2",
+      };
+
+      for (const [dep, version] of Object.entries(deps)) {
+        if (knownVulns[dep]) {
+          issues.push({
+            severity: "high",
+            type: "vulnerable_dependency",
+            file: "package.json",
+            description: `${dep}@${version} has known vulnerabilities. Update to ${knownVulns[dep]}`,
+          });
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // Scan source files for security issues
+  for (const file of files) {
+    if (!file.match(/\.(js|ts|jsx|tsx|py|php|rb)$/)) continue;
+    const content = await readFileSafe(file, 100000);
+    if (!content) continue;
+
+    const lines = content.split("\n");
+
+    // Detect hardcoded secrets
+    const secretPatterns = [
+      { pattern: /api[_-]?key\s*[:=]\s*['"][\w-]{20,}['"]/i, type: "hardcoded_api_key", severity: "critical" },
+      { pattern: /password\s*[:=]\s*['"][^'"]{8,}['"]/i, type: "hardcoded_password", severity: "critical" },
+      { pattern: /secret\s*[:=]\s*['"][\w-]{20,}['"]/i, type: "hardcoded_secret", severity: "critical" },
+      { pattern: /token\s*[:=]\s*['"][\w-]{20,}['"]/i, type: "hardcoded_token", severity: "high" },
+    ];
+
+    for (const { pattern, type, severity } of secretPatterns) {
+      for (let i = 0; i < lines.length; i++) {
+        if (pattern.test(lines[i])) {
+          issues.push({
+            severity: severity as "critical" | "high" | "medium" | "low",
+            type,
+            file: path.relative(root, file),
+            line: i + 1,
+            description: `Potential ${type} detected`,
+          });
+        }
+      }
+    }
+
+    // Detect eval usage (security risk)
+    if (content.match(/\beval\s*\(/)) {
+      issues.push({
+        severity: "medium",
+        type: "eval_usage",
+        file: path.relative(root, file),
+        description: "Use of eval() detected, which is a security risk",
+      });
+    }
+
+    // Detect SQL injection patterns
+    if (content.match(/["'].*\+\s*\w+\s*\+.*["']/) && content.match(/SELECT|INSERT|UPDATE|DELETE/i)) {
+      issues.push({
+        severity: "high",
+        type: "sql_injection_risk",
+        file: path.relative(root, file),
+        description: "Potential SQL injection vulnerability (string concatenation in SQL)",
+      });
+    }
+  }
+
+  return issues;
+}
+
+// Pattern detection
+async function detectPatterns(files: string[], root: string, contentMap: Map<string, string>): Promise<PatternDetection> {
+  const designPatterns: string[] = [];
+  const antiPatterns: string[] = [];
+  const architecturePatterns: string[] = [];
+  const codeSmells: string[] = [];
+
+  for (const file of files) {
+    if (!file.match(/\.(js|ts|jsx|tsx|py|java|cs|php|rb)$/)) continue;
+    const content = await readFileSafe(file, 100000);
+    if (!content) continue;
+
+    // Detect design patterns (simplified)
+    if (content.match(/class\s+\w+\s*{/)) {
+      if (content.match(/static\s+instance\b/) || content.match(/getInstance\s*\(/)) {
+        designPatterns.push("Singleton");
+      }
+      if (content.match(/interface\s+\w+/) && content.match(/implements\s+\w+/)) {
+        designPatterns.push("Strategy");
+      }
+    }
+
+    // Detect architecture patterns
+    if (content.match(/controller|Controller/)) architecturePatterns.push("MVC");
+    if (content.match(/service|Service/) && content.match(/repository|Repository/)) {
+      architecturePatterns.push("Layered Architecture");
+    }
+    if (content.match(/store|Store|reducer|Reducer/)) architecturePatterns.push("Redux/Flux");
+    if (content.match(/context|Context|provider|Provider/)) architecturePatterns.push("Context Pattern");
+
+    // Detect code smells
+    const lines = content.split("\n");
+    for (const line of lines) {
+      if (line.length > 200) codeSmells.push("Long Line");
+      if (line.match(/console\.log/)) codeSmells.push("Debug Code");
+      if (line.match(/any\b/) && file.match(/\.(ts|tsx)$/)) codeSmells.push("Type: any");
+    }
+  }
+
+  // Detect anti-patterns from structure
+  const hasDeepNesting = files.some((f) => f.split(/[\\/]/).length > 8);
+  if (hasDeepNesting) antiPatterns.push("Deep Nesting");
+
+  const hasLargeFiles = files.some((f) => {
+    try {
+      return fsSync.statSync(f).size > 500_000;
+    } catch {
+      return false;
+    }
+  });
+  if (hasLargeFiles) antiPatterns.push("Large Files");
+
+  return {
+    designPatterns: [...new Set(designPatterns)],
+    antiPatterns: [...new Set(antiPatterns)],
+    architecturePatterns: [...new Set(architecturePatterns)],
+    codeSmells: [...new Set(codeSmells)],
+  };
+}
+
+// Dependency analysis
+async function analyzeDependencies(contentMap: Map<string, string>, root: string): Promise<DependencyAnalysis> {
+  const pkg = contentMap.get("package.json");
+  if (!pkg) {
+    return { totalDependencies: 0, outdatedDependencies: [], vulnerableDependencies: [], dependencyTree: {} };
+  }
+
+  try {
+    const pkgData = JSON.parse(pkg);
+    const deps = { ...pkgData.dependencies, ...pkgData.devDependencies };
+    const depNames = Object.keys(deps);
+
+    // Build simple dependency tree
+    const dependencyTree: Record<string, string[]> = {};
+    for (const dep of depNames) {
+      dependencyTree[dep] = []; // Would need package-lock.json for full tree
+    }
+
+    // Check for outdated (simplified - would need npm outdated)
+    const outdated: string[] = [];
+    const vulnerable: string[] = [];
+
+    // Known outdated packages (simplified)
+    const outdatedPackages = ["react", "vue", "angular", "express", "lodash"];
+    for (const dep of depNames) {
+      if (outdatedPackages.includes(dep)) {
+        outdated.push(dep);
+      }
+    }
+
+    return {
+      totalDependencies: depNames.length,
+      outdatedDependencies: outdated,
+      vulnerableDependencies: vulnerable,
+      dependencyTree,
+    };
+  } catch {
+    return { totalDependencies: 0, outdatedDependencies: [], vulnerableDependencies: [], dependencyTree: {} };
+  }
+}
+
 export async function scanProject(projectPath: string, maxDepth = 5): Promise<ScanResult> {
   const root = path.resolve(projectPath);
   const structure: FileInfo[] = [];
@@ -379,6 +671,7 @@ export async function scanProject(projectPath: string, maxDepth = 5): Promise<Sc
   let dirCount = 0;
   const topLevelFiles: string[] = [];
   const contentMap = new Map<string, string>();
+  const allFiles: string[] = [];
 
   async function walk(dir: string, depth: number) {
     if (depth > maxDepth) return;
@@ -398,6 +691,7 @@ export async function scanProject(projectPath: string, maxDepth = 5): Promise<Sc
         } else {
           fileCount++;
           structure.push({ name, path: full, type: "file", size: stat.size });
+          allFiles.push(full);
           if (depth === 0) topLevelFiles.push(name);
           if (name === "package.json" || name === "requirements.txt" || name === "Cargo.toml" || name === "go.mod" || name === "pyproject.toml") {
             contentMap.set(name, await readFileSafe(full));
@@ -463,6 +757,14 @@ export async function scanProject(projectPath: string, maxDepth = 5): Promise<Sc
   if (topLevelFiles.includes("pytest.ini") || topLevelFiles.includes("setup.cfg")) testFrameworks.push("pytest");
   if (topLevelFiles.includes("Cargo.toml") && contentMap.get("Cargo.toml")?.includes("[[test]]")) testFrameworks.push("Cargo test");
 
+  // Advanced analysis
+  const [codeQuality, securityIssues, patterns, dependencies] = await Promise.all([
+    analyzeCodeQuality(allFiles, root),
+    detectSecurityIssues(allFiles, root, contentMap),
+    detectPatterns(allFiles, root, contentMap),
+    analyzeDependencies(contentMap, root),
+  ]);
+
   return {
     root,
     fileCount,
@@ -470,12 +772,20 @@ export async function scanProject(projectPath: string, maxDepth = 5): Promise<Sc
     techStack: { languages, frameworks, entryPoints, testFrameworks, buildTools },
     topLevelFiles,
     structure: structure.slice(0, 500), // limit
+    codeQuality,
+    securityIssues,
+    patterns,
+    dependencies,
   };
 }
 
 export async function getProjectSummary(projectPath: string): Promise<string> {
   const scan = await scanProject(projectPath, 3);
   const ts = scan.techStack;
+  const cq = scan.codeQuality;
+  const sec = scan.securityIssues;
+  const pat = scan.patterns;
+  const deps = scan.dependencies;
   const lines: string[] = [];
   lines.push(`# Project Summary: ${path.basename(scan.root)}`);
   lines.push(`Path: ${scan.root}`);
@@ -487,6 +797,37 @@ export async function getProjectSummary(projectPath: string): Promise<string> {
   if (ts.entryPoints.length) lines.push(`Likely Entry Points: ${ts.entryPoints.join(", ")}`);
   if (ts.testFrameworks.length) lines.push(`Test Frameworks: ${ts.testFrameworks.join(", ")}`);
   lines.push(``);
+  lines.push(`## Code Quality`);
+  lines.push(`- Avg Function Length: ${cq.avgFunctionLength} lines`);
+  lines.push(`- Max Nesting Depth: ${cq.maxNestingDepth}`);
+  lines.push(`- Complexity Score: ${cq.complexityScore}`);
+  lines.push(`- TODOs: ${cq.todoCount}, FIXMEs: ${cq.fixmeCount}, HACKs: ${cq.hackCount}`);
+  lines.push(``);
+  if (sec.length > 0) {
+    lines.push(`## Security Issues (${sec.length})`);
+    const critical = sec.filter(s => s.severity === "critical").length;
+    const high = sec.filter(s => s.severity === "high").length;
+    lines.push(`- Critical: ${critical}, High: ${high}, Medium: ${sec.filter(s => s.severity === "medium").length}, Low: ${sec.filter(s => s.severity === "low").length}`);
+    for (const issue of sec.slice(0, 5)) {
+      lines.push(`  - [${issue.severity.toUpperCase()}] ${issue.type}: ${issue.description}`);
+    }
+    if (sec.length > 5) lines.push(`  ... and ${sec.length - 5} more`);
+    lines.push(``);
+  }
+  if (pat.designPatterns.length || pat.architecturePatterns.length) {
+    lines.push(`## Detected Patterns`);
+    if (pat.designPatterns.length) lines.push(`- Design Patterns: ${pat.designPatterns.join(", ")}`);
+    if (pat.architecturePatterns.length) lines.push(`- Architecture Patterns: ${pat.architecturePatterns.join(", ")}`);
+    if (pat.codeSmells.length) lines.push(`- Code Smells: ${[...new Set(pat.codeSmells)].join(", ")}`);
+    lines.push(``);
+  }
+  if (deps.totalDependencies > 0) {
+    lines.push(`## Dependencies`);
+    lines.push(`- Total: ${deps.totalDependencies}`);
+    if (deps.outdatedDependencies.length) lines.push(`- Potentially Outdated: ${deps.outdatedDependencies.join(", ")}`);
+    if (deps.vulnerableDependencies.length) lines.push(`- Vulnerable: ${deps.vulnerableDependencies.join(", ")}`);
+    lines.push(``);
+  }
   lines.push(`Top-level files/directories: ${scan.topLevelFiles.join(", ")}`);
   return lines.join("\n");
 }
@@ -494,6 +835,8 @@ export async function getProjectSummary(projectPath: string): Promise<string> {
 export async function explainArchitecture(projectPath: string): Promise<string> {
   const scan = await scanProject(projectPath, 4);
   const ts = scan.techStack;
+  const pat = scan.patterns;
+  const cq = scan.codeQuality;
   const lines: string[] = [];
   lines.push(`# Architecture Overview`);
   lines.push(`Project: ${path.basename(scan.root)}`);
@@ -504,6 +847,12 @@ export async function explainArchitecture(projectPath: string): Promise<string> 
     lines.push(`- Likely uses a component-based architecture.`);
     lines.push(`- Entry point: ${ts.entryPoints.join(", ") || "src/ or pages/"}`);
     lines.push(`- Check src/components, src/app, or pages/ for UI structure.`);
+    if (pat.architecturePatterns.includes("Redux/Flux")) {
+      lines.push(`- State management: Redux/Flux pattern detected`);
+    }
+    if (pat.architecturePatterns.includes("Context Pattern")) {
+      lines.push(`- State management: React Context pattern detected`);
+    }
   } else if (ts.frameworks.includes("Vue.js")) {
     lines.push(`## Web Frontend (Vue.js)`);
     lines.push(`- Likely uses single-file components (.vue files).`);
@@ -529,6 +878,20 @@ export async function explainArchitecture(projectPath: string): Promise<string> 
     lines.push(`- Likely uses standard Go project layout. Entry: main.go or cmd/.`);
   }
 
+  if (pat.architecturePatterns.length) {
+    lines.push(`## Architecture Patterns Detected`);
+    for (const pattern of pat.architecturePatterns) {
+      lines.push(`- ${pattern}`);
+    }
+  }
+
+  if (pat.designPatterns.length) {
+    lines.push(`## Design Patterns Detected`);
+    for (const pattern of pat.designPatterns) {
+      lines.push(`- ${pattern}`);
+    }
+  }
+
   if (ts.buildTools.includes("Docker")) {
     lines.push(`## Deployment`);
     lines.push(`- Docker support detected. Check Dockerfile and docker-compose for orchestration.`);
@@ -537,6 +900,14 @@ export async function explainArchitecture(projectPath: string): Promise<string> 
   if (ts.testFrameworks.length) {
     lines.push(`## Testing`);
     lines.push(`- Tests run with: ${ts.testFrameworks.join(", ")}`);
+  }
+
+  lines.push(`## Code Quality Assessment`);
+  lines.push(`- Average function length: ${cq.avgFunctionLength} lines`);
+  lines.push(`- Maximum nesting depth: ${cq.maxNestingDepth}`);
+  lines.push(`- Complexity score: ${cq.complexityScore} (lower is better)`);
+  if (cq.todoCount > 0 || cq.fixmeCount > 0) {
+    lines.push(`- Outstanding work: ${cq.todoCount} TODOs, ${cq.fixmeCount} FIXMEs`);
   }
 
   lines.push(``);
