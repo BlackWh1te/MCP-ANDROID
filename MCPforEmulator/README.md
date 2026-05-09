@@ -48,6 +48,18 @@ This server provides a powerful interface for AI agents and developers to intera
 
 - **Emulator Detection Bypass**: Automatically bypass emulator detection checks
 - **Root Detection Bypass**: Circumvent root detection mechanisms
+- **Anti-Debug Bypass**: Bypass anti-debugging techniques
+- **SSL Pinning Bypass**: Circumvent SSL certificate pinning
+
+### Advanced Analysis
+
+- **Comprehensive App Analysis**: Deep analysis of Android applications with multiple analysis modules
+- **Security Analysis**: Anti-debug, root detection, emulator detection, and SSL pinning analysis
+- **Network Traffic Monitoring**: Monitor HTTP/HTTPS operations and detect suspicious domains
+- **File System Monitoring**: Track file access patterns and detect sensitive file access
+- **Encryption Analysis**: Monitor cryptographic operations and detect encryption libraries
+- **String Extraction**: Extract URLs, API keys, and credentials from memory
+- **Memory Analysis**: Analyze memory regions and detect suspicious patterns
 - **Combined Bypass**: Multi-layered bypass for enhanced stealth
 - **Auto-Injection**: Automatically inject bypass scripts on app attachment
 
@@ -312,15 +324,15 @@ adb shell "/data/local/tmp/frida-server &"
 
 ## Quick Reference
 
-| Installation Method | Best For | Build Time | Dependencies |
-|-------------------|----------|------------|--------------|
-| **Standard Rust** | General use | ~5-10 min | Rust, Cargo |
-| **Homebrew** | macOS users | ~5-10 min | Homebrew, Rust, UV |
-| **UV Python** | Python developers | ~2-5 min | UV, Rust |
-| **Docker** | Isolated environments | ~5-15 min | Docker |
-| **Pre-built** | Quick deployment | ~1 min | None |
-| **Development** | Active development | ~5-10 min | Rust, Cargo, UV |
-| **Minimal** | Resource-constrained | ~1 min | None |
+| Installation Method | Best For              | Build Time | Dependencies       |
+| ------------------- | --------------------- | ---------- | ------------------ |
+| **Standard Rust**   | General use           | ~5-10 min  | Rust, Cargo        |
+| **Homebrew**        | macOS users           | ~5-10 min  | Homebrew, Rust, UV |
+| **UV Python**       | Python developers     | ~2-5 min   | UV, Rust           |
+| **Docker**          | Isolated environments | ~5-15 min  | Docker             |
+| **Pre-built**       | Quick deployment      | ~1 min     | None               |
+| **Development**     | Active development    | ~5-10 min  | Rust, Cargo, UV    |
+| **Minimal**         | Resource-constrained  | ~1 min     | None               |
 
 ## Installation Method Details
 
@@ -463,6 +475,142 @@ The server exposes the following MCP tools:
 - **bypass_emulator_detection**: Bypass emulator detection checks
 - **bypass_root_detection**: Bypass root detection mechanisms
 - **inject_combined_bypass**: Inject comprehensive bypass scripts
+
+### Advanced Analysis
+
+- **analyze_android**: Comprehensive analysis of Android applications with multiple analysis modules
+
+## Comprehensive Android Analysis Tool
+
+The `analyze_android` tool provides deep analysis capabilities for Android applications. It combines multiple analysis modules into a unified, comprehensive analysis workflow.
+
+### Analysis Modules
+
+The tool supports the following analysis modules:
+
+- **Security Analysis**: Anti-debug detection, root detection, emulator detection, SSL pinning analysis
+- **Network Analysis**: HTTP/HTTPS monitoring, domain tracking, suspicious domain detection
+- **File System Analysis**: File access monitoring, sensitive file detection
+- **Encryption Analysis**: Cryptographic operation monitoring, encryption library detection
+- **String Analysis**: URL extraction, API key detection, credential detection
+- **Memory Analysis**: Memory region analysis, suspicious pattern detection
+- **Anti-Debug Analysis**: Debug detection method identification
+- **SSL/TLS Analysis**: Certificate pinning analysis, TLS version detection
+
+### Analysis Depth Levels
+
+The tool supports four analysis depth levels:
+
+- **Quick**: Security + Memory analysis (fastest)
+- **Standard**: Security + Memory + Network + Strings (balanced)
+- **Deep**: All modules including filesystem, encryption, SSL (comprehensive)
+- **Comprehensive**: All available modules (most thorough)
+
+### Usage Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "analyze_android",
+    "arguments": {
+      "device_id": "emulator-5554",
+      "pid": 12345,
+      "depth": "standard",
+      "bypass_anti_debug": true,
+      "dump_strings": true,
+      "hook_network": true,
+      "hook_file_ops": true,
+      "hook_encryption": true,
+      "hook_database": true,
+      "analyze_ssl_pinning": true,
+      "output_format": "json"
+    }
+  },
+  "id": 1
+}
+```
+
+### Analysis Result Structure
+
+The analysis returns a comprehensive report including:
+
+- **Device Information**: Device model, Android version, architecture
+- **Process Information**: PID, package name, threads, modules, memory usage
+- **Security Analysis**: Anti-debug methods, root detection, SSL pinning status
+- **Network Analysis**: HTTP/HTTPS operations, domains contacted, suspicious domains
+- **File System Analysis**: Files accessed, written, deleted, sensitive files
+- **Encryption Analysis**: Crypto operations, encryption libraries
+- **String Analysis**: URLs, API keys, credentials, file paths
+- **Memory Analysis**: Memory regions, suspicious regions, heap/stack analysis
+- **Findings**: Detailed security findings with severity and recommendations
+- **Summary**: Risk score, analysis duration, module execution summary
+
+### Example Analysis Result
+
+```json
+{
+  "timestamp": "2024-01-15T10:30:00Z",
+  "device_info": {
+    "device_id": "emulator-5554",
+    "android_version": "13",
+    "api_level": 33,
+    "architecture": "x86_64"
+  },
+  "process_info": {
+    "pid": 12345,
+    "process_name": "com.example.app",
+    "package_name": "com.example.app",
+    "total_memory_mb": 256.5
+  },
+  "security_analysis": {
+    "anti_debug_detected": true,
+    "anti_debug_methods": ["debuggerConnected", "timingAttack"],
+    "ssl_pinning_detected": true,
+    "ssl_pinning_methods": ["X509TrustManager.checkServerTrusted"]
+  },
+  "network_analysis": {
+    "http_hooks_count": 15,
+    "https_hooks_count": 42,
+    "domains_contacted": ["api.example.com", "analytics.example.com"],
+    "suspicious_domains": ["analytics.example.com"]
+  },
+  "string_analysis": {
+    "urls_found": ["https://api.example.com/v1"],
+    "api_keys_detected": ["sk_live_1234567890abcdef"],
+    "credentials_detected": ["password", "auth_token"]
+  },
+  "findings": [
+    {
+      "severity": "critical",
+      "category": "Security",
+      "title": "Potential API keys detected",
+      "description": "Application contains potential API keys in memory",
+      "recommendation": "Review API key usage and consider rotating keys if exposed",
+      "evidence": ["sk_live_1234567890abcdef"]
+    },
+    {
+      "severity": "high",
+      "category": "Network",
+      "title": "SSL pinning detected",
+      "description": "Application uses SSL certificate pinning",
+      "recommendation": "Use SSL pinning bypass to intercept HTTPS traffic",
+      "evidence": ["X509TrustManager.checkServerTrusted"]
+    }
+  ],
+  "summary": {
+    "analysis_duration_ms": 5234,
+    "total_findings": 8,
+    "critical_findings": 1,
+    "high_findings": 3,
+    "medium_findings": 2,
+    "low_findings": 2,
+    "overall_risk_score": 75,
+    "risk_assessment": "High"
+  }
+}
+```
 
 ## Example Usage
 

@@ -26,6 +26,7 @@ use crate::frida::{FridaBridge, ThreadInfo, MemoryMatch, MemoryRegion, HookInfo}
 use crate::config::{Config, load_config, load_default_bypass_script};
 use crate::session::SessionManager;
 use crate::rate_limiter::RateLimiter;
+use crate::tools;
 use uuid::Uuid;
 
 /// MCP Frida Android Server
@@ -901,6 +902,30 @@ impl McpFridaServer {
                 warn!("Failed to enumerate memory regions: {}", e);
                 serde_json::to_string(&ToolError {
                     error: format!("Failed to enumerate memory regions: {}", e),
+                }).unwrap_or_else(|_| "Error serializing error".to_string())
+            }
+        }
+    }
+
+    // Advanced analysis tools
+
+    /// Run comprehensive analysis on an Android application
+    #[tool(description = "Run comprehensive analysis on an Android application with multiple analysis modules")]
+    async fn analyze_android(
+        &self,
+        Parameters(params): Parameters<tools::analysis::AnalyzeAndroidParams>,
+    ) -> String {
+        info!("Running comprehensive analysis for PID: {} on device: {}", params.pid, params.device_id);
+
+        match tools::analysis::analyze_android(params).await {
+            Ok(result) => {
+                serde_json::to_string(&result)
+                    .unwrap_or_else(|_| "Error serializing result".to_string())
+            }
+            Err(e) => {
+                warn!("Failed to run comprehensive analysis: {}", e);
+                serde_json::to_string(&ToolError {
+                    error: format!("Failed to run comprehensive analysis: {}", e),
                 }).unwrap_or_else(|_| "Error serializing error".to_string())
             }
         }

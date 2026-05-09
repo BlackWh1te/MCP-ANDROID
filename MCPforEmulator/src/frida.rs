@@ -862,6 +862,25 @@ impl FridaBridge {
         Ok(symbols)
     }
 
+    /// Run comprehensive analysis on a process
+    pub async fn run_comprehensive_analysis(
+        &self,
+        device_id: &str,
+        pid: u32,
+    ) -> Result<serde_json::Value> {
+        debug!("Running comprehensive analysis for process {} on device {}", pid, device_id);
+        
+        // Load the comprehensive analysis script
+        let script_path = "tools/frida_scripts/comprehensive_analysis.js";
+        let script_content = std::fs::read_to_string(script_path)
+            .context("Failed to read comprehensive analysis script")?;
+        
+        // Execute the script
+        let result = self.execute_script(device_id, pid, &script_content).await?;
+        
+        Ok(result)
+    }
+
     /// Helper function for robust JSON parsing with fallback
     fn parse_json_fallback<T: for<'de> Deserialize<'de>>(
         &self,
