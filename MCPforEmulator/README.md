@@ -105,7 +105,34 @@ adb version
 cargo run --release
 ```
 
-### Option 2: UV Python Package Manager (Fastest for Python Dependencies)
+### Option 2: Homebrew (macOS)
+
+```bash
+# 1. Install Homebrew (if not already installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 2. Install Rust via Homebrew
+brew install rust
+
+# 3. Install Python and UV via Homebrew
+brew install python@3.11
+pip install uv
+
+# 4. Clone the repository
+git clone https://github.com/BlackWh1te/MCP-ANDROID.git
+cd MCP-ANDROID/MCPforEmulator
+
+# 5. Install dependencies with UV
+uv pip install frida-tools requests
+
+# 6. Build the project
+cargo build --release
+
+# 7. Run the server
+cargo run --release
+```
+
+### Option 3: UV Python Package Manager (Fastest for Python Dependencies)
 
 ```bash
 # 1. Install UV (Python package manager)
@@ -128,7 +155,7 @@ uv run cargo run --release
 uv run examples/mcp_client.py
 ```
 
-### Option 3: Docker Installation
+### Option 4: Docker Installation
 
 ```bash
 # 1. Clone the repository
@@ -151,7 +178,7 @@ docker run -d \
 docker logs -f mcp-frida
 ```
 
-### Option 4: Pre-built Binaries (Windows/Linux/macOS)
+### Option 5: Pre-built Binaries (Windows/Linux/macOS)
 
 ```bash
 # 1. Download the latest release for your platform
@@ -169,7 +196,7 @@ chmod +x mcp-frida-android
 pip install frida-tools
 ```
 
-### Option 5: Development Setup with All Features
+### Option 6: Development Setup with All Features
 
 ```bash
 # 1. Clone the repository
@@ -197,7 +224,7 @@ cargo test
 cargo watch -x run
 ```
 
-### Option 6: Minimal Setup (No Build Required)
+### Option 7: Minimal Setup (No Build Required)
 
 ```bash
 # 1. Use pre-compiled server from releases
@@ -218,6 +245,9 @@ pip install frida-tools
 Choose your preferred method:
 
 ```bash
+# Using Homebrew (macOS)
+brew install frida
+
 # Using pip with requirements.txt (recommended)
 pip install -r requirements.txt
 
@@ -270,6 +300,7 @@ adb shell "/data/local/tmp/frida-server &"
 | Installation Method | Best For | Build Time | Dependencies |
 |-------------------|----------|------------|--------------|
 | **Standard Rust** | General use | ~5-10 min | Rust, Cargo |
+| **Homebrew** | macOS users | ~5-10 min | Homebrew, Rust, UV |
 | **UV Python** | Python developers | ~2-5 min | UV, Rust |
 | **Docker** | Isolated environments | ~5-15 min | Docker |
 | **Pre-built** | Quick deployment | ~1 min | None |
@@ -281,6 +312,8 @@ adb shell "/data/local/tmp/frida-server &"
 ### When to Use Each Method
 
 **Standard Rust Installation**: Use this for most cases. It's the most reliable and well-documented approach.
+
+**Homebrew**: The best option for macOS users. Leverages Homebrew's package management for easy installation of Rust, Python, and other dependencies. Integrates well with macOS ecosystem.
 
 **UV Python Package Manager**: Use this if you work with Python extensively. UV is extremely fast and manages both Python and Rust dependencies efficiently.
 
