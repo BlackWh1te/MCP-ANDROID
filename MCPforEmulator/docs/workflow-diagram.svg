@@ -1,4 +1,11 @@
 <svg width="900" height="500" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ffffff"/>
+    </marker>
+  </defs>
+
   <!-- Background -->
   <rect width="900" height="500" fill="#1a1a2e"/>
 
@@ -75,11 +82,4 @@
   <text x="80" y="460" font-family="Arial, sans-serif" font-size="9" fill="#ffffff">Setup</text>
   <rect x="60" y="465" width="12" height="12" fill="#50c878"/>
   <text x="80" y="475" font-family="Arial, sans-serif" font-size="9" fill="#ffffff">Operations</text>
-
-  <!-- Arrow marker definition -->
-  <defs>
-    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="#ffffff"/>
-    </marker>
-  </defs>
 </svg>
