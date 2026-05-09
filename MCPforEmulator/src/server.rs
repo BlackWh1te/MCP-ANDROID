@@ -60,14 +60,14 @@ struct McpResponse {
     /// Result data (present on success)
     result: Option<serde_json::Value>,
     /// Error information (present on failure)
-    error: Option<McpError>,
+    error: Option<McpProtocolError>,
     /// Request ID for correlation
     id: Option<serde_json::Value>,
 }
 
 /// MCP protocol error structure
 #[derive(Debug, Serialize)]
-struct McpError {
+struct McpProtocolError {
     /// Error code (MCP protocol specific)
     code: i32,
     /// Human-readable error message
@@ -221,7 +221,7 @@ async fn handle_mcp_request(
             Ok(ResponseJson(McpResponse {
                 jsonrpc: "2.0".to_string(),
                 result: None,
-                error: Some(McpError {
+                error: Some(McpProtocolError {
                     code: -32600,
                     message: err,
                 }),

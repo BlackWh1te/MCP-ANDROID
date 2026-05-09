@@ -29,6 +29,15 @@ pub struct AdbBridge {
     timeout: Duration,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeviceStatus {
+    pub serial: String,
+    pub model: String,
+    pub status: String,
+    pub is_connected: bool,
+    pub can_execute_shell: bool,
+}
+
 impl AdbBridge {
     pub fn new(config: &Config) -> Self {
         let adb_path = crate::config::get_adb_path(config);
@@ -92,7 +101,7 @@ impl AdbBridge {
             }
 
             // Exponential backoff
-            let backoff_duration = Duration::from_millis(100 * 2_u32.pow(attempt).min(8));
+            let backoff_duration = Duration::from_millis((100 * 2_u32.pow(attempt).min(8)) as u64);
             debug!("Retrying {} after {:?}", operation_name, backoff_duration);
             sleep(backoff_duration).await;
         }
@@ -136,7 +145,7 @@ impl AdbBridge {
                             .output(),
                     )
                     .await
-                    .context("ADB devices command timed out")
+                    .context("ADB devices command timed out")?
                     .context("Failed to execute ADB devices command")
                 },
                 "list_devices",
@@ -168,18 +177,14 @@ impl AdbBridge {
     pub async fn check_connection(&self, serial: &str) -> Result<bool> {
         debug!("Checking connection for device: {}", serial);
 
-        let serial_clone = serial.to_string();
-        let adb_path_clone = self.adb_path.clone();
-        let timeout_clone = self.timeout;
-
         let output = self
             .execute_with_retry(
-                move || async {
+                || async {
                     timeout(
-                        timeout_clone,
-                        Command::new(&adb_path_clone)
+                        self.timeout,
+                        Command::new(&self.adb_path)
                             .arg("-s")
-                            .arg(&serial_clone)
+                            .arg(serial)
                             .arg("shell")
                             .arg("echo")
                             .arg("connected")
@@ -188,7 +193,7 @@ impl AdbBridge {
                             .output(),
                     )
                     .await
-                    .context("ADB connection check timed out")
+                    .context("ADB connection check timed out")?
                     .context("Failed to execute ADB connection check")
                 },
                 "check_connection",
@@ -230,15 +235,6 @@ impl AdbBridge {
             can_execute_shell,
         })
     }
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DeviceStatus {
-    pub serial: String,
-    pub model: String,
-    pub status: String,
-    pub is_connected: bool,
-    pub can_execute_shell: bool,
-}
 
     /// List processes on the device
     pub async fn list_processes(&self, serial: &str) -> Result<Vec<Process>> {
@@ -323,27 +319,22 @@ pub struct DeviceStatus {
     pub async fn shell_command(&self, serial: &str, command: &str) -> Result<String> {
         debug!("Executing shell command on device {}: {}", serial, command);
 
-        let serial_clone = serial.to_string();
-        let command_clone = command.to_string();
-        let adb_path_clone = self.adb_path.clone();
-        let timeout_clone = self.timeout;
-
         let output = self
             .execute_with_retry(
-                move || async {
+                || async {
                     timeout(
-                        timeout_clone,
-                        Command::new(&adb_path_clone)
+                        self.timeout,
+                        Command::new(&self.adb_path)
                             .arg("-s")
-                            .arg(&serial_clone)
+                            .arg(serial)
                             .arg("shell")
-                            .arg(&command_clone)
+                            .arg(command)
                             .stdout(Stdio::piped())
                             .stderr(Stdio::piped())
                             .output(),
                     )
                     .await
-                    .context("ADB shell command timed out")
+                    .context("ADB shell command timed out")?
                     .context("Failed to execute ADB shell command")
                 },
                 "shell_command",

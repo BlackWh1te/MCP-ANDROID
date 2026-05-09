@@ -82,7 +82,14 @@ impl MetricsCollector {
     /// Get current metrics
     pub async fn get_metrics(&self) -> ServerMetrics {
         let metrics = self.metrics.read().await;
-        metrics.clone()
+        ServerMetrics {
+            start_time: metrics.start_time,
+            total_requests: metrics.total_requests,
+            successful_requests: metrics.successful_requests,
+            failed_requests: metrics.failed_requests,
+            tool_calls: metrics.tool_calls.clone(),
+            avg_request_duration_ms: metrics.avg_request_duration_ms,
+        }
     }
 
     /// Reset metrics

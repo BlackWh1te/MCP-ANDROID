@@ -184,7 +184,7 @@ pub async fn enumerate_exports(params: EnumerateExportsParams) -> Result<Enumera
 }
 
 pub async fn enumerate_symbols(params: EnumerateSymbolsParams) -> Result<EnumerateSymbolsResult, String> {
-    let config = load_config().map_err(|e => e.to_string())?;
+    let config = load_config().map_err(|e| e.to_string())?;
     let frida = FridaBridge::new(&config);
     
     let symbols = frida.enumerate_symbols(&params.device_id, params.pid, &params.module_name)

@@ -6,20 +6,17 @@
 use anyhow::Result;
 use rmcp::{
     handler::server::wrapper::Parameters,
-    handler::server::router::prompt::PromptRouter,
-    schemars::JsonSchema,
     tool,
-    tool_handler,
     tool_router,
     prompt,
     prompt_handler,
     prompt_router,
     ServerHandler,
     ServiceExt,
-    transport::stdio,
-    model::{ServerInfo, ServerCapabilities, ListResourcesResult as McpListResourcesResult, ReadResourceRequestParams, ReadResourceResult, ResourceContents, RawResource, ListResourceTemplatesResult, ResourceTemplate, ListPromptsResult, GetPromptResult, PromptMessage, PromptArgument},
-    service::RequestContext,
+    service::{RequestContext, ServiceRole},
+    model::{ServerInfo, ServerCapabilities, ListResourcesResult as McpListResourcesResult, ReadResourceRequestParams, ReadResourceResult, ResourceContents, RawResource, ListResourceTemplatesResult, ResourceTemplate, ListPromptsResult, GetPromptResult, PromptMessage, PromptArgument, AnnotateAble},
 };
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tracing::{info, error, warn};
 use std::sync::Arc;
@@ -1112,11 +1109,6 @@ impl McpFridaServer {
 }
 
 // Server handler implementation with resources support
-#[tool_handler(
-    name = "mcp-frida-android",
-    version = env!("CARGO_PKG_VERSION"),
-    instructions = "MCP server for Frida integration with Android devices via ADB. Provides tools for device management, process inspection, memory analysis, and dynamic instrumentation."
-)]
 impl ServerHandler for McpFridaServer {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
@@ -1131,7 +1123,7 @@ impl ServerHandler for McpFridaServer {
     async fn list_resources(
         &self,
         _request: Option<()>,
-        _context: RequestContext,
+        _context: RequestContext<ServiceRole>,
     ) -> Result<McpListResourcesResult, rmcp::ErrorData> {
         info!("Listing resources");
 
@@ -1154,7 +1146,7 @@ impl ServerHandler for McpFridaServer {
     async fn read_resource(
         &self,
         request: ReadResourceRequestParams,
-        _context: RequestContext,
+        _context: RequestContext<ServiceRole>,
     ) -> Result<ReadResourceResult, rmcp::ErrorData> {
         info!("Reading resource: {}", request.uri);
 
@@ -1189,7 +1181,7 @@ impl ServerHandler for McpFridaServer {
     async fn list_resource_templates(
         &self,
         _request: Option<()>,
-        _context: RequestContext,
+        _context: RequestContext<ServiceRole>,
     ) -> Result<ListResourceTemplatesResult, rmcp::ErrorData> {
         info!("Listing resource templates");
 
@@ -1218,7 +1210,7 @@ impl ServerHandler for McpFridaServer {
     async fn list_prompts(
         &self,
         _request: Option<()>,
-        _context: RequestContext,
+        _context: RequestContext<ServiceRole>,
     ) -> Result<ListPromptsResult, rmcp::ErrorData> {
         info!("Listing prompts");
 
@@ -1282,7 +1274,7 @@ impl ServerHandler for McpFridaServer {
     async fn get_prompt(
         &self,
         request: rmcp::model::GetPromptRequestParams,
-        _context: RequestContext,
+        _context: RequestContext<ServiceRole>,
     ) -> Result<GetPromptResult, rmcp::ErrorData> {
         info!("Getting prompt: {}", request.name);
 
