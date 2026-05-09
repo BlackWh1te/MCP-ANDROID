@@ -411,6 +411,7 @@ pub async fn analyze_android(params: AnalyzeAndroidParams) -> Result<AnalyzeAndr
     let risk_assessment = assess_risk(risk_score);
 
     let analysis_duration = start_time.elapsed().as_millis() as u64;
+    let findings_count = findings.len();
 
     Ok(AnalyzeAndroidResult {
         timestamp: Utc::now().to_rfc3339(),
@@ -428,11 +429,11 @@ pub async fn analyze_android(params: AnalyzeAndroidParams) -> Result<AnalyzeAndr
         summary: AnalysisSummary {
             analysis_duration_ms: analysis_duration,
             modules_run: modules_to_run,
-            total_findings: findings.len(),
-            critical_findings,
-            high_findings,
-            medium_findings,
-            low_findings,
+            total_findings: findings_count,
+            critical_findings: critical_findings as usize,
+            high_findings: high_findings as usize,
+            medium_findings: medium_findings as usize,
+            low_findings: low_findings as usize,
             overall_risk_score: risk_score,
             risk_assessment,
         },
@@ -465,7 +466,7 @@ fn determine_modules(depth: &str, custom_modules: &Option<Vec<String>>) -> Vec<S
             "modules".to_string(),
             "threads".to_string(),
         ],
-        "comprehensive" => AVAILABLE_MODULES.to_vec(),
+        "comprehensive" => AVAILABLE_MODULES.iter().map(|s| s.to_string()).collect(),
         _ => vec![
             "security".to_string(),
             "memory".to_string(),
@@ -508,7 +509,13 @@ async fn analyze_process(
     modules: &[String],
 ) -> Result<ProcessAnalysisInfo, String> {
     let threads = if modules.contains(&"threads".to_string()) {
-        frida.enumerate_threads(device_id, pid).await.map_err(|e| e.to_string())?
+        let frida_threads = frida.enumerate_threads(device_id, pid).await.map_err(|e| e.to_string())?;
+        frida_threads.iter().map(|t| ThreadInfo {
+            thread_id: t.id,
+            thread_name: t.name.clone().unwrap_or("unknown".to_string()),
+            state: t.state.clone(),
+            cpu_usage: 0.0,
+        }).collect()
     } else {
         vec![]
     };
@@ -564,9 +571,9 @@ async fn analyze_memory(
         .map_err(|e| e.to_string())?;
 
     let total_regions = regions.len();
-    let executable_regions = regions.iter().filter(|r| r.permissions.contains("x")).count();
-    let writable_regions = regions.iter().filter(|r| r.permissions.contains("w")).count();
-    let readable_regions = regions.iter().filter(|r| r.permissions.contains("r")).count();
+    let executable_regions = regions.iter().filter(|r| r.protection.contains("x")).count();
+    let writable_regions = regions.iter().filter(|r| r.protection.contains("w")).count();
+    let readable_regions = regions.iter().filter(|r| r.protection.contains("r")).count();
 
     let suspicious_regions = identify_suspicious_regions(&regions);
 
@@ -579,7 +586,7 @@ async fn analyze_memory(
                 "Memory region with suspicious characteristics: {} permissions, {} bytes",
                 region.permissions, region.size
             ),
-            recommendation: "Investigate this region for potential code injection or data hiding",
+            recommendation: "Investigate this region for potential code injection or data hiding".to_string(),
             evidence: vec![format!("Address: {}", region.address), format!("Reason: {}", region.reason)],
         });
     }
@@ -619,7 +626,7 @@ async fn analyze_security(
         .map(|arr| arr.is_empty())
         .unwrap_or(true);
 
-    let anti_debug_methods = security_data.get("antiDebug")
+    let anti_debug_methods: Vec<String> = security_data.get("antiDebug")
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
         .unwrap_or_default();
@@ -649,7 +656,7 @@ async fn analyze_security(
         .map(|arr| arr.is_empty())
         .unwrap_or(true);
 
-    let ssl_pinning_methods = security_data.get("sslPinning")
+    let ssl_pinning_methods: Vec<String> = security_data.get("sslPinning")
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
         .unwrap_or_default();
@@ -714,12 +721,12 @@ async fn analyze_network(
         .map(|arr| arr.len())
         .unwrap_or(0);
 
-    let domains = network_data.get("domains")
+    let domains: Vec<String> = network_data.get("domains")
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
         .unwrap_or_default();
 
-    let suspicious_domains = domains.iter()
+    let suspicious_domains: Vec<String> = domains.iter()
         .filter(|d| d.contains("analytics") || d.contains("tracking") || d.contains("telemetry"))
         .cloned()
         .collect();
@@ -760,7 +767,7 @@ async fn analyze_filesystem(
         .and_then(|v| v.as_object())
         .ok_or("No filesystem analysis data found")?;
 
-    let files_accessed = fs_data.get("filesAccessed")
+    let files_accessed: Vec<String> = fs_data.get("filesAccessed")
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
         .unwrap_or_default();
@@ -770,7 +777,7 @@ async fn analyze_filesystem(
         .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
         .unwrap_or_default();
 
-    let sensitive_files = files_accessed.iter()
+    let sensitive_files: Vec<String> = files_accessed.iter()
         .filter(|f| f.contains("password") || f.contains("token") || f.contains("key") || f.contains("secret"))
         .cloned()
         .collect();
@@ -868,12 +875,12 @@ async fn analyze_strings(
         .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
         .unwrap_or_default();
 
-    let api_keys = string_data.get("apiKeys")
+    let api_keys: Vec<String> = string_data.get("apiKeys")
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
         .unwrap_or_default();
 
-    let interesting_strings = string_data.get("interestingStrings")
+    let interesting_strings: Vec<String> = string_data.get("interestingStrings")
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
         .unwrap_or_default();
@@ -889,7 +896,7 @@ async fn analyze_strings(
         });
     }
 
-    let credentials = interesting_strings.iter()
+    let credentials: Vec<String> = interesting_strings.iter()
         .filter(|s| s.contains("password") || s.contains("credential") || s.contains("auth"))
         .cloned()
         .collect();
@@ -926,31 +933,31 @@ fn identify_suspicious_regions(regions: &[crate::frida::MemoryRegion]) -> Vec<Su
     regions.iter()
         .filter(|r| {
             // Look for regions with both read and write permissions (RWX)
-            let is_rwx = r.permissions.contains("r") && r.permissions.contains("w") && r.permissions.contains("x");
+            let is_rwx = r.protection.contains("r") && r.protection.contains("w") && r.protection.contains("x");
             // Look for very large regions
             let is_large = r.size > 10 * 1024 * 1024; // > 10MB
             // Look for regions in suspicious address ranges
-            let is_suspicious_address = r.start_address.contains("7f") || r.start_address.contains("7f");
+            let is_suspicious_address = r.base.contains("7f") || r.base.contains("7f");
 
             is_rwx || is_large || is_suspicious_address
         })
         .map(|r| SuspiciousMemoryRegion {
-            address: r.start_address.clone(),
+            address: r.base.clone(),
             size: r.size,
-            permissions: r.permissions.clone(),
-            reason: if r.permissions.contains("r") && r.permissions.contains("w") && r.permissions.contains("x") {
-                "RWX permissions - potentially executable code"
+            permissions: r.protection.clone(),
+            reason: if r.protection.contains("r") && r.protection.contains("w") && r.protection.contains("x") {
+                "RWX permissions - potentially executable code".to_string()
             } else if r.size > 10 * 1024 * 1024 {
-                "Large memory region"
+                "Large memory region".to_string()
             } else {
-                "Suspicious address range"
+                "Suspicious address range".to_string()
             },
-            risk_level: if r.permissions.contains("r") && r.permissions.contains("w") && r.permissions.contains("x") {
-                "high"
+            risk_level: if r.protection.contains("r") && r.protection.contains("w") && r.protection.contains("x") {
+                "high".to_string()
             } else if r.size > 10 * 1024 * 1024 {
-                "medium"
+                "medium".to_string()
             } else {
-                "low"
+                "low".to_string()
             },
         })
         .collect()

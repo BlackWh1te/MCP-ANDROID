@@ -90,8 +90,8 @@ impl AuthManager {
         let expiration_hours = config.jwt_expiration_hours.unwrap_or(24);
         let expiration_duration = Duration::hours(expiration_hours);
 
-        let issuer = config.jwt_issuer.clone().unwrap_or_else(|_| "mcp-frida-android".to_string());
-        let audience = config.jwt_audience.clone().unwrap_or_else(|_| "mcp-clients".to_string());
+        let issuer = config.jwt_issuer.clone().unwrap_or_else(|| "mcp-frida-android".to_string());
+        let audience = config.jwt_audience.clone().unwrap_or_else(|| "mcp-clients".to_string());
 
         Ok(Self {
             encoding_key,
@@ -188,7 +188,7 @@ impl AuthManager {
             };
         }
 
-        let validation = Validation::new(Algorithm::HS256);
+        let mut validation = Validation::new(Algorithm::HS256);
         validation.set_issuer(&[&self.issuer]);
         validation.set_audience(&[&self.audience]);
 

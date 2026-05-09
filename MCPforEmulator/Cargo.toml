@@ -6,6 +6,10 @@ authors = ["Your Name <your.email@example.com>"]
 description = "MCP server for Frida integration with Android devices via ADB"
 license = "MIT"
 
+[features]
+default = ["rmcp"]
+legacy_only = []
+
 [dependencies]
 # Async runtime
 tokio = { version = "1.35", features = ["full"] }
@@ -30,7 +34,7 @@ tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 
 # Official MCP SDK
-rmcp = { version = "0.16", features = ["server", "macros", "transport-io", "auth"] }
+rmcp = { version = "0.16", features = ["server", "macros", "transport-io", "auth"], optional = true }
 
 # ADB and process management
 sysinfo = "0.30"

@@ -14,6 +14,7 @@
 
 mod config;
 mod server;
+#[cfg(not(feature = "legacy_only"))]
 mod rmcp_server;
 mod adb;
 mod frida;
@@ -44,10 +45,9 @@ async fn main() -> Result<()> {
     let config = config::load_config()?;
     info!("Configuration loaded: {:?}", config);
 
-    // Check if legacy server should be used (via environment variable)
-    let use_legacy = std::env::var("USE_LEGACY_SERVER").unwrap_or_else(|_| "false".to_string()) == "true";
-
-    if use_legacy {
+    // Check if legacy server should be used (via feature flag)
+    #[cfg(feature = "legacy_only")]
+    {
         info!("Using legacy HTTP server implementation");
         // Start legacy MCP server with graceful shutdown support
         match server::run(config).await {
@@ -60,7 +60,10 @@ async fn main() -> Result<()> {
                 Err(e)
             }
         }
-    } else {
+    }
+
+    #[cfg(not(feature = "legacy_only"))]
+    {
         info!("Using RMCP server implementation (default)");
         // Start RMCP server
         match rmcp_server::run_rmcp_server(config).await {

@@ -22,3 +22,7 @@ config.local.toml
 # Temporary files
 *.tmp
 *.bak
+
+# Executables
+*.exe
+*.pdb

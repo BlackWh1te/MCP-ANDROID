@@ -4,7 +4,7 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use tracing::{info_span, Span};
+use tracing::info_span;
 use uuid::Uuid;
 
 /// Middleware to add request ID to tracing span
