@@ -1,0 +1,25 @@
+[project]
+name = "mcp-frida-android"
+version = "0.1.0"
+description = "Python client and utilities for MCP Frida Android Server"
+requires-python = ">=3.8"
+dependencies = [
+    "frida-tools>=12.0.0",
+    "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+]

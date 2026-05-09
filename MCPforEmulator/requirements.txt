@@ -1,0 +1,13 @@
+# Python dependencies for MCP Frida Android Server
+# Install with: pip install -r requirements.txt
+# Or with UV: uv pip install -r requirements.txt
+
+# Frida tools for dynamic instrumentation
+frida-tools>=12.0.0
+
+# HTTP client for MCP client examples
+requests>=2.31.0
+
+# Optional: For development and testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0

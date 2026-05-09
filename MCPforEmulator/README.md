@@ -74,34 +74,223 @@ This server provides a powerful interface for AI agents and developers to intera
 
 ## Prerequisites
 
-- Rust 1.70 or later
-- Android SDK with ADB installed
-- Frida tools installed on your system
 - Android device or emulator with USB debugging enabled
 - Device/emulator may need to be rooted for certain operations
+- Frida tools installed on your system (for runtime functionality)
 
-## Installation
+## Quick Start
 
-### 1. Clone the repository
+Choose the installation method that best fits your environment:
 
-```bash
-git clone <repository-url>
-cd MCPforEmulator
-```
-
-### 2. Build the project
+### Option 1: Standard Rust Installation (Recommended)
 
 ```bash
+# 1. Install Rust (if not already installed)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# 2. Clone the repository
+git clone https://github.com/BlackWh1te/MCP-ANDROID.git
+cd MCP-ANDROID/MCPforEmulator
+
+# 3. Build the project
 cargo build --release
+
+# 4. Install Frida tools
+pip install frida-tools
+
+# 5. Configure ADB (ensure it's in your PATH or update config.toml)
+adb version
+
+# 6. Run the server
+cargo run --release
 ```
 
-### 3. Install Frida tools
+### Option 2: UV Python Package Manager (Fastest for Python Dependencies)
 
-Download and install Frida from [frida.re](https://frida.re/docs/installation/)
+```bash
+# 1. Install UV (Python package manager)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-### 4. Set up ADB
+# 2. Clone the repository
+git clone https://github.com/BlackWh1te/MCP-ANDROID.git
+cd MCP-ANDROID/MCPforEmulator
 
-Ensure ADB is in your PATH or configure the path in `config.toml`
+# 3. Install Python dependencies with UV
+uv pip install frida-tools requests
+
+# 4. Build Rust project with UV (if you have UV's Rust integration)
+uv run cargo build --release
+
+# 5. Run the server
+uv run cargo run --release
+
+# Or use UV for Python client examples
+uv run examples/mcp_client.py
+```
+
+### Option 3: Docker Installation
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/BlackWh1te/MCP-ANDROID.git
+cd MCP-ANDROID/MCPforEmulator
+
+# 2. Build Docker image
+docker build -t mcp-frida-android .
+
+# 3. Run container with ADB and Frida access
+docker run -d \
+  --name mcp-frida \
+  -p 3000:3000 \
+  -v /path/to/android-sdk:/android-sdk \
+  -v ~/.android:/root/.android \
+  --network host \
+  mcp-frida-android
+
+# 4. Check logs
+docker logs -f mcp-frida
+```
+
+### Option 4: Pre-built Binaries (Windows/Linux/macOS)
+
+```bash
+# 1. Download the latest release for your platform
+# Visit: https://github.com/BlackWh1te/MCP-ANDROID/releases
+
+# 2. Extract and run
+# Windows:
+mcp-frida-android.exe
+
+# Linux/macOS:
+chmod +x mcp-frida-android
+./mcp-frida-android
+
+# 3. Install Frida tools separately
+pip install frida-tools
+```
+
+### Option 5: Development Setup with All Features
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/BlackWh1te/MCP-ANDROID.git
+cd MCP-ANDROID/MCPforEmulator
+
+# 2. Install Rust with all toolchains
+rustup install stable
+rustup default stable
+
+# 3. Install development dependencies
+cargo install cargo-watch cargo-edit
+
+# 4. Install Python dependencies with UV
+pip install uv
+uv pip install frida-tools requests pytest
+
+# 5. Build with all features
+cargo build --release --all-features
+
+# 6. Run tests
+cargo test
+
+# 7. Run with auto-reload during development
+cargo watch -x run
+```
+
+### Option 6: Minimal Setup (No Build Required)
+
+```bash
+# 1. Use pre-compiled server from releases
+wget https://github.com/BlackWh1te/MCP-ANDROID/releases/latest/download/mcp-frida-linux-amd64
+chmod +x mcp-frida-linux-amd64
+
+# 2. Install only runtime dependencies
+pip install frida-tools
+
+# 3. Run directly
+./mcp-frida-linux-amd64
+```
+
+## Post-Installation Setup
+
+### Install Frida Tools
+
+Choose your preferred method:
+
+```bash
+# Using pip with requirements.txt (recommended)
+pip install -r requirements.txt
+
+# Using UV with requirements.txt (fastest)
+uv pip install -r requirements.txt
+
+# Using pip directly
+pip install frida-tools
+
+# Using UV directly
+uv pip install frida-tools
+
+# Using conda
+conda install -c conda-forge frida-tools
+
+# Using pyproject.toml with UV
+uv sync
+```
+
+### Configure ADB
+
+```bash
+# Check if ADB is available
+adb version
+
+# If not available, install Android SDK Platform Tools
+# Or add to config.toml:
+# [adb]
+# path = "/path/to/adb"
+```
+
+### Set Up Device/Emulator
+
+```bash
+# For physical devices
+adb devices
+# Accept authorization on device
+
+# For emulators (MuMu example)
+adb connect 127.0.0.1:7555
+
+# Install Frida server on device
+adb push frida-server /data/local/tmp/
+adb shell "chmod 755 /data/local/tmp/frida-server"
+adb shell "/data/local/tmp/frida-server &"
+```
+
+## Quick Reference
+
+| Installation Method | Best For | Build Time | Dependencies |
+|-------------------|----------|------------|--------------|
+| **Standard Rust** | General use | ~5-10 min | Rust, Cargo |
+| **UV Python** | Python developers | ~2-5 min | UV, Rust |
+| **Docker** | Isolated environments | ~5-15 min | Docker |
+| **Pre-built** | Quick deployment | ~1 min | None |
+| **Development** | Active development | ~5-10 min | Rust, Cargo, UV |
+| **Minimal** | Resource-constrained | ~1 min | None |
+
+## Installation Method Details
+
+### When to Use Each Method
+
+**Standard Rust Installation**: Use this for most cases. It's the most reliable and well-documented approach.
+
+**UV Python Package Manager**: Use this if you work with Python extensively. UV is extremely fast and manages both Python and Rust dependencies efficiently.
+
+**Docker Installation**: Use this for production deployments or when you need complete environment isolation. Great for CI/CD pipelines.
+
+**Pre-built Binaries**: Use this for quick testing or when you don't want to compile anything. Fastest way to get started.
+
+**Development Setup**: Use this if you're actively developing the server. Includes additional tools for testing and debugging.
+
+**Minimal Setup**: Use this for resource-constrained environments or when you want the smallest possible footprint.
 
 ## Configuration
 
@@ -309,6 +498,50 @@ Comprehensive examples demonstrating various workflows:
 - **bypass_scripts.md** - Bypass script documentation
 
 ## Development
+
+### Python Project Files
+
+The project includes modern Python packaging for easy dependency management:
+
+- **requirements.txt**: Standard Python dependencies (pip compatible)
+- **pyproject.toml**: Modern Python project configuration (UV compatible)
+- **Dockerfile**: Multi-stage Docker build for containerized deployments
+- **.dockerignore**: Optimizes Docker builds by excluding unnecessary files
+
+### Development with UV
+
+```bash
+# Install UV
+pip install uv
+
+# Install dependencies
+uv sync
+
+# Run Python examples
+uv run examples/mcp_client.py
+
+# Run tests
+uv run pytest
+```
+
+### Docker Development
+
+```bash
+# Build the Docker image
+docker build -t mcp-frida-android .
+
+# Run the container
+docker run -it --rm \
+  -p 3000:3000 \
+  -v $(pwd)/config.toml:/app/config.toml \
+  mcp-frida-android
+
+# Run with shell access
+docker run -it --rm \
+  -p 3000:3000 \
+  --entrypoint /bin/bash \
+  mcp-frida-android
+```
 
 ### Project Structure
 
