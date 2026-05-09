@@ -1,0 +1,62 @@
+[package]
+name = "mcp-frida-android"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "MCP server for Frida integration with Android devices via ADB"
+license = "MIT"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+tokio-util = "0.7"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# HTTP server for MCP (legacy - will be replaced by rmcp)
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Official MCP SDK
+rmcp = { version = "0.16", features = ["server", "macros", "transport-stdio", "transport-streamable-http-server", "auth"] }
+
+# ADB and process management
+sysinfo = "0.30"
+
+# Configuration
+config = "0.14"
+dirs = "5.0"
+
+# Utilities
+hex = "0.4"
+base64 = "0.22"
+chrono = "0.4"
+
+# Async process spawning
+async-process = "1.0"
+
+# UUID generation
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# JSON Schema generation for MCP tools
+schemars = "0.8"
+
+# Authentication and security
+jsonwebtoken = "10"
+sha2 = "0.10"
+hmac = "0.12"
+
+[dev-dependencies]
+tokio-test = "0.4"

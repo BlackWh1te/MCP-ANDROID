@@ -1,0 +1,31 @@
+# MCP Frida Android Server Configuration
+
+[server]
+host = "127.0.0.1"
+port = 3000
+
+[adb]
+# Path to adb executable. Leave empty to use system PATH
+# Example Windows: "C:\\Users\\YourName\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe"
+# Example Linux/Mac: "/home/yourname/Android/Sdk/platform-tools/adb"
+path = "C:\\Users\\Shukhrat\\AppData\\Local\\npm-cache\\_npx\\7ce4565c73d8cd04\\node_modules\\xdl\\binaries\\windows\\adb\\adb.exe"
+timeout_seconds = 30
+
+# MuMu Emulator Configuration
+[mumu]
+enabled = true
+host = "127.0.0.1"
+port = 7555
+
+[frida]
+# Path to frida executable. Leave empty to use system PATH
+path = "frida"
+device_port = 27042
+script_timeout_seconds = 60
+
+# Default Bypass Scripts
+[bypass]
+# Automatically inject bypass scripts on app attach
+auto_inject = true
+# Types: "emulator", "root", "combined"
+bypass_type = "combined"
