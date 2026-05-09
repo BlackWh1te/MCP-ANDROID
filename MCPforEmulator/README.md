@@ -1,5 +1,10 @@
 # MCP Frida Android Server
 
+<div align="center">
+  <img src="docs/logo.svg" alt="MCP Frida Android Server Logo" width="200"/>
+  <img src="docs/logo-icon.svg" alt="MCP Frida Android Server Icon" width="128"/>
+</div>
+
 A Rust-based MCP (Model Context Protocol) server that integrates Frida for dynamic instrumentation and memory inspection on Android devices and emulators via ADB.
 
 ## Overview
@@ -48,6 +53,12 @@ This server provides a powerful interface for AI agents and developers to intera
 
 ## Architecture
 
+### Architecture Diagram
+
+![Architecture Diagram](docs/architecture-diagram.svg)
+
+### ASCII Architecture
+
 ```
 ┌─────────────────┐
 │   MCP Client    │
@@ -72,9 +83,9 @@ This server provides a powerful interface for AI agents and developers to intera
 └────────┘ └────────────┘
 ```
 
-**Visual Architecture Diagram**: See `docs/architecture-diagram.svg` for a detailed visual representation of the system architecture.
+### Workflow Diagram
 
-**Workflow Diagram**: See `docs/workflow-diagram.svg` for a step-by-step visual guide of the MCP server workflow.
+![Workflow Diagram](docs/workflow-diagram.svg)
 
 ## Prerequisites
 
