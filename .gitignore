@@ -9,3 +9,5 @@ graphx-out/
 *.temp
 temp/
 src/test-write.txt
+MCP/
+ai_multitool_demo.py
