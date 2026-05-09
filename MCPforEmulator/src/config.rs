@@ -51,6 +51,10 @@ pub struct AuthConfig {
     pub api_keys: Option<Vec<ApiKeyConfig>>,
     pub require_auth: bool,
     pub audit_log_enabled: bool,
+    pub jwt_secret: Option<String>,
+    pub jwt_issuer: Option<String>,
+    pub jwt_audience: Option<String>,
+    pub jwt_expiration_hours: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -91,6 +95,10 @@ impl Default for Config {
                 api_keys: None,
                 require_auth: false,
                 audit_log_enabled: true,
+                jwt_secret: None,
+                jwt_issuer: Some("mcp-frida-android".to_string()),
+                jwt_audience: Some("mcp-clients".to_string()),
+                jwt_expiration_hours: Some(24),
             },
         }
     }

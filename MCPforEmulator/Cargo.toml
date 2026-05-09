@@ -30,7 +30,7 @@ tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 
 # Official MCP SDK
-rmcp = { version = "0.16", features = ["server", "macros", "transport-stdio", "transport-streamable-http-server", "auth"] }
+rmcp = { version = "0.16", features = ["server", "macros", "transport-io", "auth"] }
 
 # ADB and process management
 sysinfo = "0.30"

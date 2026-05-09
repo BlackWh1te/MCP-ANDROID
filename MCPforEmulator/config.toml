@@ -29,3 +29,20 @@ script_timeout_seconds = 60
 auto_inject = true
 # Types: "emulator", "root", "combined"
 bypass_type = "combined"
+
+# Authentication Configuration
+[auth]
+# Enable authentication
+enabled = false
+# Require authentication for all requests
+require_auth = false
+# Enable audit logging
+audit_log_enabled = true
+# JWT secret key (generate with: openssl rand -base64 32)
+jwt_secret = ""
+# JWT issuer
+jwt_issuer = "mcp-frida-android"
+# JWT audience
+jwt_audience = "mcp-clients"
+# JWT token expiration in hours
+jwt_expiration_hours = 24
