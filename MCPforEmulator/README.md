@@ -72,6 +72,10 @@ This server provides a powerful interface for AI agents and developers to intera
 └────────┘ └────────────┘
 ```
 
+**Visual Architecture Diagram**: See `docs/architecture-diagram.svg` for a detailed visual representation of the system architecture.
+
+**Workflow Diagram**: See `docs/workflow-diagram.svg` for a step-by-step visual guide of the MCP server workflow.
+
 ## Prerequisites
 
 - Android device or emulator with USB debugging enabled
