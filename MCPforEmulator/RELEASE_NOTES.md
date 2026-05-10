@@ -117,8 +117,11 @@ For use with MCP clients (e.g., Claude Desktop), configure:
 To build from source:
 
 ```bash
-# Build with legacy server (recommended for now)
-cargo build --release --features legacy_only
+# Build with legacy HTTP server (default, recommended)
+cargo build --release
+
+# Build with RMCP server (experimental, has API compatibility issues)
+cargo build --release --features rmcp
 
 # The executable will be in target/release/mcp-frida-android.exe
 ```

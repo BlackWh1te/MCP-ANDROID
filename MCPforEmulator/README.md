@@ -259,8 +259,8 @@ cargo install cargo-watch cargo-edit
 pip install uv
 uv pip install frida-tools requests pytest
 
-# 5. Build with all features
-cargo build --release --all-features
+# 5. Build the project (default uses legacy HTTP server)
+cargo build --release
 
 # 6. Run tests
 cargo test
