@@ -790,10 +790,19 @@ tools/
 
 ### Building
 
+The project supports two server implementations:
+
+**Default (Legacy HTTP Server)**: Stable, well-tested HTTP-based MCP server
 ```bash
-cargo build
 cargo build --release
 ```
+
+**RMCP Server (Experimental)**: Uses the official MCP SDK (rmcp 0.16). Note: This has known API compatibility issues and may require additional fixes.
+```bash
+cargo build --release --features rmcp
+```
+
+For most users, the default legacy HTTP server is recommended.
 
 ### Testing
 
