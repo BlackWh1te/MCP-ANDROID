@@ -1147,8 +1147,8 @@ impl ServerHandler for McpFridaServer {
 
     async fn list_resources(
         &self,
-        _request: Option<()>,
-        _context: RequestContext<ServiceRole>,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
     ) -> Result<McpListResourcesResult, rmcp::ErrorData> {
         info!("Listing resources");
 
@@ -1171,7 +1171,7 @@ impl ServerHandler for McpFridaServer {
     async fn read_resource(
         &self,
         request: ReadResourceRequestParams,
-        _context: RequestContext<ServiceRole>,
+        _context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResult, rmcp::ErrorData> {
         info!("Reading resource: {}", request.uri);
 
@@ -1205,25 +1205,12 @@ impl ServerHandler for McpFridaServer {
 
     async fn list_resource_templates(
         &self,
-        _request: Option<()>,
-        _context: RequestContext<ServiceRole>,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
     ) -> Result<ListResourceTemplatesResult, rmcp::ErrorData> {
         info!("Listing resource templates");
 
-        let templates = vec![
-            ResourceTemplate {
-                uri_template: "device://{device_serial}/logcat".to_string(),
-                name: Some("Device Logcat".to_string()),
-                description: Some("Fetch logcat output from a specific device".to_string()),
-                mime_type: Some("text/plain".to_string()),
-            },
-            ResourceTemplate {
-                uri_template: "process://{device_serial}/{pid}/memory".to_string(),
-                name: Some("Process Memory Map".to_string()),
-                description: Some("Get memory map for a specific process".to_string()),
-                mime_type: Some("application/json".to_string()),
-            },
-        ];
+        let templates = vec![];
 
         Ok(ListResourceTemplatesResult {
             resource_templates: templates,
@@ -1234,82 +1221,98 @@ impl ServerHandler for McpFridaServer {
 
     async fn list_prompts(
         &self,
-        _request: Option<()>,
-        _context: RequestContext<ServiceRole>,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
     ) -> Result<ListPromptsResult, rmcp::ErrorData> {
         info!("Listing prompts");
 
         let prompts = vec![
             rmcp::model::Prompt {
                 name: "analyze_app".to_string(),
+                title: Some("Analyze Android App".to_string()),
                 description: Some("Comprehensive Android app security analysis workflow".to_string()),
                 arguments: Some(vec![
                     PromptArgument {
                         name: "package_name".to_string(),
+                        title: Some("Package Name".to_string()),
                         description: Some("Package name of the app to analyze".to_string()),
                         required: Some(true),
                     },
                     PromptArgument {
                         name: "device_serial".to_string(),
+                        title: Some("Device Serial".to_string()),
                         description: Some("Device serial number".to_string()),
                         required: Some(true),
                     },
                 ]),
+                icons: None,
+                meta: None,
             },
             rmcp::model::Prompt {
                 name: "hook_network".to_string(),
+                title: Some("Hook Network Traffic".to_string()),
                 description: Some("Monitor and analyze network traffic from an Android app".to_string()),
                 arguments: Some(vec![
                     PromptArgument {
                         name: "package_name".to_string(),
+                        title: Some("Package Name".to_string()),
                         description: Some("Package name to monitor".to_string()),
                         required: Some(true),
                     },
                     PromptArgument {
                         name: "device_serial".to_string(),
+                        title: Some("Device Serial".to_string()),
                         description: Some("Device serial number".to_string()),
                         required: Some(true),
                     },
                 ]),
+                icons: None,
+                meta: None,
             },
             rmcp::model::Prompt {
                 name: "bypass_ssl".to_string(),
+                title: Some("Bypass SSL Pinning".to_string()),
                 description: Some("Bypass SSL certificate pinning in an Android app".to_string()),
                 arguments: Some(vec![
                     PromptArgument {
                         name: "package_name".to_string(),
+                        title: Some("Package Name".to_string()),
                         description: Some("Package name to bypass SSL for".to_string()),
                         required: Some(true),
                     },
                     PromptArgument {
                         name: "device_serial".to_string(),
+                        title: Some("Device Serial".to_string()),
                         description: Some("Device serial number".to_string()),
                         required: Some(true),
                     },
                 ]),
+                icons: None,
+                meta: None,
             },
         ];
 
         Ok(ListPromptsResult {
             prompts,
             next_cursor: None,
+            meta: None,
         })
     }
 
     async fn get_prompt(
         &self,
         request: rmcp::model::GetPromptRequestParams,
-        _context: RequestContext<ServiceRole>,
+        _context: RequestContext<RoleServer>,
     ) -> Result<GetPromptResult, rmcp::ErrorData> {
         info!("Getting prompt: {}", request.name);
 
         let messages = match request.name.as_str() {
             "analyze_app" => {
-                let package_name = request.args
+                let package_name = request.arguments
                     .and_then(|args| args.get("package_name"))
                     .and_then(|v| v.as_str())
                     .unwrap_or("com.example.app");
-                let device_serial = request.args
+                let device_serial = request.arguments
                     .and_then(|args| args.get("device_serial"))
                     .and_then(|v| v.as_str())
                     .unwrap_or("emulator-5554");
@@ -1320,11 +1323,11 @@ impl ServerHandler for McpFridaServer {
                 }))
             }
             "hook_network" => {
-                let package_name = request.args
+                let package_name = request.arguments
                     .and_then(|args| args.get("package_name"))
                     .and_then(|v| v.as_str())
                     .unwrap_or("com.example.app");
-                let device_serial = request.args
+                let device_serial = request.arguments
                     .and_then(|args| args.get("device_serial"))
                     .and_then(|v| v.as_str())
                     .unwrap_or("emulator-5554");
@@ -1335,11 +1338,11 @@ impl ServerHandler for McpFridaServer {
                 }))
             }
             "bypass_ssl" => {
-                let package_name = request.args
+                let package_name = request.arguments
                     .and_then(|args| args.get("package_name"))
                     .and_then(|v| v.as_str())
                     .unwrap_or("com.example.app");
-                let device_serial = request.args
+                let device_serial = request.arguments
                     .and_then(|args| args.get("device_serial"))
                     .and_then(|v| v.as_str())
                     .unwrap_or("emulator-5554");

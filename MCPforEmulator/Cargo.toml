@@ -7,8 +7,8 @@ description = "MCP server for Frida integration with Android devices via ADB"
 license = "MIT"
 
 [features]
-default = ["rmcp"]
-legacy_only = []
+default = []
+rmcp = ["dep:rmcp"]
 
 [dependencies]
 # Async runtime
@@ -46,7 +46,7 @@ dirs = "5.0"
 # Utilities
 hex = "0.4"
 base64 = "0.22"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 
 # Async process spawning
 async-process = "1.0"

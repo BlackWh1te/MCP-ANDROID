@@ -14,7 +14,7 @@
 
 mod config;
 mod server;
-#[cfg(not(feature = "legacy_only"))]
+#[cfg(feature = "rmcp")]
 mod rmcp_server;
 mod adb;
 mod frida;
@@ -45,26 +45,10 @@ async fn main() -> Result<()> {
     let config = config::load_config()?;
     info!("Configuration loaded: {:?}", config);
 
-    // Check if legacy server should be used (via feature flag)
-    #[cfg(feature = "legacy_only")]
+    // Check which server to use (via feature flag)
+    #[cfg(feature = "rmcp")]
     {
-        info!("Using legacy HTTP server implementation");
-        // Start legacy MCP server with graceful shutdown support
-        match server::run(config).await {
-            Ok(_) => {
-                info!("Server started successfully");
-                Ok(())
-            }
-            Err(e) => {
-                error!("Failed to start server: {}", e);
-                Err(e)
-            }
-        }
-    }
-
-    #[cfg(not(feature = "legacy_only"))]
-    {
-        info!("Using RMCP server implementation (default)");
+        info!("Using RMCP server implementation");
         // Start RMCP server
         match rmcp_server::run_rmcp_server(config).await {
             Ok(_) => {
@@ -73,6 +57,22 @@ async fn main() -> Result<()> {
             }
             Err(e) => {
                 error!("Failed to start RMCP server: {}", e);
+                Err(e)
+            }
+        }
+    }
+
+    #[cfg(not(feature = "rmcp"))]
+    {
+        info!("Using legacy HTTP server implementation (default)");
+        // Start legacy MCP server with graceful shutdown support
+        match server::run(config).await {
+            Ok(_) => {
+                info!("Server started successfully");
+                Ok(())
+            }
+            Err(e) => {
+                error!("Failed to start server: {}", e);
                 Err(e)
             }
         }
